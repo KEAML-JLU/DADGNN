@@ -1,10 +1,12 @@
 # DADGNN
 The source code of "Deep attention diffusion graph neural networks for text classification"
 
-usage
+## Usage
 python train_pre.py
 
-If you find our work can help your research, please cite our work!
+## Cite
+
+If you find our work can help your research, please cite our work! <br>
 
 @inproceedings{liu2021deep,  
 
