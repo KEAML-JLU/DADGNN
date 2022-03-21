@@ -2,7 +2,9 @@
 The source code of "Deep attention diffusion graph neural networks for text classification"
 
 ## Usage
+```
 python train_pre.py
+```
 
 ## Cite
 
