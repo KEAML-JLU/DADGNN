@@ -5,6 +5,7 @@ The source code of "Deep attention diffusion graph neural networks for text clas
 ```
 python train_pre.py
 ```
+More commands can be found in script.sh
 
 ## Cite
 
