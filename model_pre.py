@@ -9,8 +9,6 @@ from dgl.nn.pytorch.glob import WeightAndSum
 
 class Model(torch.nn.Module):
     def __init__(self,
-                
-                 
                  num_hidden,
                  num_layers,
                  num_heads,
@@ -41,16 +39,12 @@ class Model(torch.nn.Module):
         self.dropout = torch.nn.Dropout(p=drop_out)
         self.activation = torch.nn.ReLU()
         
-        #self.attn_fc = torch.nn.Linear(2 * hidden_size_node, 1, bias=False)
-        
         self.linear1 = torch.nn.Linear(num_feats, num_hidden, bias=True)
         self.bn1 = torch.nn.BatchNorm1d(num_hidden)
         self.linear2 = torch.nn.Linear(num_hidden, class_num, bias=True)
         self.bn2 = torch.nn.BatchNorm1d(class_num)        
         self.weight_and_sum = WeightAndSum(class_num)
-        #self.bn = torch.nn.BatchNorm1d(hidden_size_node)
-        #self.ln = torch.nn.LayerNorm(hidden_size_node)
-        #self.reset()
+
     
     def reset(self):
       gain = torch.nn.init.calculate_gain("relu")
@@ -84,23 +78,7 @@ class Model(torch.nn.Module):
                 dst_word_old = doc_ids[i]
                 dst = old_to_new[dst_word_old]
                 edges.append([src, dst])
-             
-        '''
-        for index, src_word_old in enumerate(list(reversed(doc_ids))):
-
-            src = old_to_new[src_word_old]
-            for i in range(max(0, index - self.ngram), min(index, len(doc_ids))):
-                dst_word_old = doc_ids[i]
-                dst = old_to_new[dst_word_old]
-
-                # - first connect the new sub_graph
-                edges.append([src, dst])
-                # - then get the hidden from parent_graph
-                try :
-                 old_edge_id.append(self.edges_matrix[(src_word_old, dst_word_old)])
-                except KeyError:
-                 old_edge_id.append(np.random.randint(0,self.edges_num))
-        '''
+            
         return edges
 
     def seq_to_graph(self, doc_ids: list) -> dgl.DGLGraph():
@@ -117,7 +95,7 @@ class Model(torch.nn.Module):
         else:
             local_vocab = torch.tensor(list(local_vocab))
 
-        sub_graph = dgl.DGLGraph()
+        sub_graph = dgl.DGLGraph().to('cuda')
         sub_graph.add_nodes(len(local_vocab))
         local_node_hidden = self.node_hidden(local_vocab)
 
@@ -133,19 +111,11 @@ class Model(torch.nn.Module):
     def forward(self, doc_ids):
 
         sub_graphs = [self.seq_to_graph(doc) for doc in doc_ids]
-        
         batch_graph = dgl.batch(sub_graphs)
-        
-        #h1 = dgl.sum_nodes(batch_graph, feat='h')
         batch_f = self.dropout(batch_graph.ndata['k'])
         batch_f = self.activation(self.linear1(batch_f))
         batch_f = self.linear2(self.dropout(batch_f))
         h1 = self.gatnet(batch_graph, batch_f)
         h1 = self.weight_and_sum(batch_graph, h1)
-        #h1 = self.set_trans_dec(batch_graph, batch_f)
-        #drop1 = self.dropout(h1)
-        #drop1 = self.bn(drop1)
-        #act1 = self.activation(h1)
-        #l = self.Linear(act1)
      
         return h1
