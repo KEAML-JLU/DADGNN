@@ -60,7 +60,6 @@ class SingleHeadGATLayer(nn.Module):
         return {'e': F.leaky_relu(a)}
   
     def forward(self, graph, features):
-        #g = graph.local_var()
       with graph.local_scope():
         if self.layer_norm:
           h_tide = self.ln(features)
@@ -94,8 +93,6 @@ class GATLayer(nn.Module):
         super(GATLayer, self).__init__()
         self.heads = nn.ModuleList()
         self.Wo = nn.Linear(num_heads*out_dim, out_dim, bias=True)
-    #   self.W1 = nn.Linear(out_dim, out_dim, bias=False)
-    #   self.W2 = nn.Linear(out_dim, out_dim, bias=False)
         self.norm = nn.LayerNorm(out_dim)
         self.act = nn.ReLU()
         layer_norm = False
@@ -108,24 +105,15 @@ class GATLayer(nn.Module):
     def reset_parameters(self):
         gain = nn.init.calculate_gain("relu")
         nn.init.xavier_normal_(self.Wo.weight, gain=gain)
-        #nn.init.xavier_normal_(self.W1.weight, gain=gain)
-        #nn.init.xavier_normal_(self.W2.weight, gain=gain)
         
     def forward(self, g, features):
         head_outs = [attn_head(g, features) for attn_head in self.heads]
         if self.merge == 'cat':
             h_hat = self.Wo(th.cat(head_outs, dim=1))
-            #h_hat = h_hat + features
-            #return th.cat(head_outs, dim=1)
             
         else:
-            #return th.mean(th.stack(head_outs), dim=0)
-            h_hat = th.mean(th.stack(head_outs), dim=0) #+ features
-        #variable = self.act(self.W1(self.norm(h_hat)))
-        #variable = self.W2(variable)
-        #h_prm = h_hat + variable
-        return h_hat#h_prm
-            
+            h_hat = th.mean(th.stack(head_outs), dim=0)
+        return h_hat
             
 
 class GATNet(nn.Module):
@@ -140,11 +128,7 @@ class GATNet(nn.Module):
         for i in range(1, num_layers):
             self.layers.append(GATLayer(num_hidden, num_hidden, k, alpha, num_heads, merge,
                                         activation,batch_norm, residual, dropout))
-        '''
-        self.layers.append(
-            GATLayer(num_hidden * num_heads, num_classes, k, alpha, 1, merge,
-                     None, batch_norm, residual, 0))
-        '''
+
         self.reset_parameters()
         
     def reset_parameters(self):
@@ -158,12 +142,4 @@ class GATNet(nn.Module):
         for i, layer in enumerate(self.layers):
             h = layer(graph, h)
             results.append(h)
-        '''
-        H = th.stack(results, dim=1)
-        #print(H.size(),self.s.size())
-        S = th.sigmoid(th.matmul(H, self.s))
-        #print('complete!')
-        S = S.permute(0,2,1)
-        H = th.matmul(S,H).squeeze()
-        '''
         return h
