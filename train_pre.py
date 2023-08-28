@@ -7,12 +7,14 @@ import sys, random
 import argparse
 import time, datetime
 import os
+import warnings
+
+warnings.filterwarnings("ignore")
 NUM_ITER_EVAL = 100
 EARLY_STOP_EPOCH = 10
 
 
 def get_time_dif(start_time):
-    """获取已使用时间"""
     end_time = time.time()
     time_dif = end_time - start_time
     return datetime.timedelta(seconds=int(round(time_dif)))
@@ -20,7 +22,6 @@ def get_time_dif(start_time):
 
 def dev(model, dataset, dev_data_helper):
     model.eval()
-    #data_helper = DataHelper(dataset, mode='dev')
     total_pred = 0
     correct = 0
     iter = 0
@@ -30,15 +31,12 @@ def dev(model, dataset, dev_data_helper):
 
           logits = model(content)
           pred = torch.argmax(logits, dim=1)
-
           correct_pred = torch.sum(pred == label)
-
           correct += correct_pred
           total_pred += len(content)
 
     total_pred = float(total_pred)
     correct = correct.float()
-    # print(torch.div(correct, total_pred))
     return torch.div(correct, total_pred)
 
 
@@ -66,7 +64,7 @@ def test(model, dataset):
     return torch.div(correct, total_pred).to('cpu').numpy()
 
 
-def train(ngram, name, bar, drop_out, num_hidden, num_layers, num_heads, k, alpha, dataset, is_cuda, edges=True):
+def train(ngram, name, wd, bar, drop_out, num_hidden, num_layers, num_heads, k, alpha, dataset, is_cuda, edges=True):
 
     print('load data helper.')
     path = '/content/data/' + dataset + '/' + dataset + '-vocab.txt'
@@ -74,25 +72,16 @@ def train(ngram, name, bar, drop_out, num_hidden, num_layers, num_heads, k, alph
       vocab = f.read()
       vocab = vocab.split('\n')
     data_helper = DataHelper(dataset=dataset, mode='train', vocab=vocab)
-    #count, edges_mappings = edges_mapping(len(data_helper.vocab), data_helper.content, ngram)
-    #edges_matrix=edges_mappings, edges_num=count,
     model = Model(num_hidden, num_layers, num_heads, k, alpha,
                       vocab=data_helper.vocab, n_gram=ngram, drop_out=drop_out, class_num=len(data_helper.labels_str), num_feats=300)
     
     dev_data_helper = DataHelper(dataset=dataset, mode='dev', vocab=vocab)
-    #print(model)
     if is_cuda:
         print('cuda')
         model.cuda()
 
     loss_func = torch.nn.CrossEntropyLoss()
-    '''
-    bias_list = (param for name, param in model.named_parameters() if name[-4:] == 'bias')
-    others_list = (param for name, param in model.named_parameters() if name[-4:] != 'bias')
-    parameters = [{'params': bias_list, 'weight_decay': 0},                
-              {'params': others_list}]
-    '''
-    optim = torch.optim.Adam(model.parameters(), weight_decay=1e-6)
+    optim = torch.optim.Adam(model.parameters(), weight_decay=wd)
 
 
     iter = 0
@@ -160,6 +149,7 @@ if __name__ == '__main__':
     parser.add_argument('--ngram', required=False, type=int, default=4, help='ngram number')
     parser.add_argument('--name', required=False, type=str, default='model', help='project name')
     parser.add_argument('--bar', required=False, type=int, default=1, help='show bar')
+    parser.add_argument('--wd', required=False, type=float, default=1e-6, help='weight decay')
     parser.add_argument('--dropout', required=False, type=float, default=0.5, help='dropout rate')
     parser.add_argument('--num_hidden', required=False, type=int, default=64, help='hidden dimension')
     parser.add_argument('--num_layers', required=False, type=int, default=5, help='model layer')
@@ -168,7 +158,7 @@ if __name__ == '__main__':
     parser.add_argument('--alpha', required=False, type=int, default=0.5, help='alpha')
     parser.add_argument('--dataset', required=True, type=str, help='dataset')
     parser.add_argument('--edges', required=False, type=int, default=1, help='trainable edges')
-    parser.add_argument('--rand', required=False, type=int, default=1234, help='rand_seed')
+    parser.add_argument('--rand', required=False, type=int, default=42, help='rand_seed')
 
     args = parser.parse_args()
 
@@ -176,7 +166,7 @@ if __name__ == '__main__':
     print('project_name: %s' % args.name)
     print('dataset: %s' % args.dataset)
     print('trainable_edges: %s' % args.edges)
-    # #
+    
     SEED = args.rand
     torch.manual_seed(SEED)
     torch.cuda.manual_seed(SEED)
@@ -194,10 +184,7 @@ if __name__ == '__main__':
     else:
         edges = False
 
-    model = train(args.ngram, args.name, bar, args.dropout, args.num_hidden, args.num_layers, args.num_heads, args.k, args.alpha,dataset=args.dataset, is_cuda=True, edges=edges)
+    model = train(args.ngram, args.name, args.wd, bar, args.dropout, args.num_hidden, args.num_layers, args.num_heads, args.k, args.alpha,dataset=args.dataset, is_cuda=True, edges=edges)
     model.load_state_dict(torch.load('model.pth'))
     result = test(model, args.dataset)
     print('top-1 test acc: ', result)
- 
-    
-  
