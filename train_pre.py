@@ -67,7 +67,7 @@ def test(model, dataset):
 def train(ngram, name, wd, bar, drop_out, num_hidden, num_layers, num_heads, k, alpha, dataset, is_cuda, edges=True):
 
     print('load data helper.')
-    path = '/content/data/' + dataset + '/' + dataset + '-vocab.txt'
+    path = '/DADGNN/data/' + dataset + '/' + dataset + '-vocab.txt'
     with open(path,'r') as f:
       vocab = f.read()
       vocab = vocab.split('\n')
