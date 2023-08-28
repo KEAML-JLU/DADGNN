@@ -1,1 +1,5 @@
-dglcu100==0.4.3
+numpy==1.21.6
+scikit-learn==1.0.2
+torch==1.12.1
+gensim==1.21.6
+dgl-cu110==0.6.1
