@@ -60,7 +60,7 @@ class DataHelper(object):
         return result
 
     def get_vocab(self):
-        with open(os.path.join(self.base, 'vocab-5.txt')) as f:
+        with open(os.path.join(self.base, self.dataset+'-vocab.txt')) as f:
             vocab = f.read()
             self.vocab = vocab.split('\n')
 
