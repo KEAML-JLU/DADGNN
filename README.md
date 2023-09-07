@@ -7,6 +7,10 @@ python train_pre.py
 ```
 More commands can be found in script.sh
 
+## Other implementation
+[Here](https://github.com/Ipouyall/DADGNN)
+Thanks for their implementation!
+
 ## Cite
 
 If you find our work can help your research, please cite our work! <br>
